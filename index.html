@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diabetes Risk Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d2b26;
+    --card: #fbfaf6;
+    --side: #e3f1ec;
+    --ink: #12302b;
+    --muted: #5a716b;
+    --line: #d7e2de;
+    --accent: #0f766e;
+    --low: #1f8a4c;
+    --mid: #c27a14;
+    --high: #c2412d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: #e6f0ed;
+    font-family: "Inter", system-ui, sans-serif; line-height: 1.5;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 24px 64px; }
+  h1 {
+    font-family: "Fraunces", Georgia, serif; font-weight: 600;
+    font-size: clamp(34px, 6vw, 52px); margin: 0 0 16px; letter-spacing: -0.5px;
+  }
+  .intro { max-width: 640px; color: #a9c2bb; font-size: 17px; margin: 0 0 32px; }
+  .panel {
+    display: grid; grid-template-columns: 1.15fr 1fr;
+    background: var(--card); color: var(--ink); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  }
+  .form { padding: 32px 36px; }
+  .form h2 { font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin: 0 0 8px; color: var(--accent); }
+  .row {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 13px 0; border-bottom: 1px solid var(--line);
+  }
+  .row:last-of-type { border-bottom: none; }
+  .row label { font-size: 16px; font-weight: 500; }
+  .row small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; font-weight: 400; }
+  .row input[type=number] {
+    width: 130px; padding: 10px 12px; font: inherit; text-align: right;
+    border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+  }
+  .row input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .unit { display: inline-flex; margin-top: 6px; }
+  .unit button {
+    font: inherit; font-size: 12px; padding: 3px 10px; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--muted);
+  }
+  .unit button:first-child { border-radius: 6px 0 0 6px; }
+  .unit button:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+  .unit button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .actions button {
+    font: inherit; font-weight: 600; padding: 12px 24px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--accent);
+  }
+  #go { background: var(--accent); color: #fff; }
+  #go:hover { background: #0b5f58; }
+  #reset { background: transparent; color: var(--accent); }
+  .error { color: var(--high); font-size: 14px; min-height: 20px; margin-top: 12px; }
+
+  .result {
+    background: var(--side); padding: 32px 36px; display: flex; flex-direction: column;
+    justify-content: flex-end; min-height: 360px;
+  }
+  .result .k { color: var(--muted); font-size: 15px; }
+  .pct { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(54px, 9vw, 84px); line-height: 1.05; margin: 6px 0 0; }
+  .label { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 26px; margin-bottom: 14px; }
+  .bar { height: 10px; background: #c9dbd5; border-radius: 5px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 5px; transition: width .5s ease, background .3s; }
+  .factors { margin: 18px 0 0; padding: 0; list-style: none; font-size: 14px; }
+  .factors li { padding: 3px 0; }
+  .factors .up { color: var(--high); font-weight: 600; }
+  .factors .down { color: var(--low); font-weight: 600; }
+  .factors-title { margin-top: 18px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .note { color: var(--muted); font-size: 14px; margin-top: 14px; }
+  .low { color: var(--low); } .mid { color: var(--mid); } .high { color: var(--high); }
+  .placeholder { color: var(--muted); font-size: 16px; margin-bottom: auto; }
+  .disclaimer { margin-top: 28px; color: #8fb0a7; font-size: 13px; max-width: 760px; }
+  .foot { margin-top: 10px; color: #6c8c84; font-size: 13px; }
+  @media (max-width: 800px) {
+    .panel { grid-template-columns: 1fr; }
+    .form, .result { padding: 24px 20px; }
+    .row input[type=number] { width: 110px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Diabetes Risk Predictor</h1>
+  <p class="intro">Enter a person's health details to see how likely they are to have diabetes. This uses a simple maths formula (logistic regression) trained on the Pima Indians Diabetes dataset. There is no server, and everything is calculated live in your browser.</p>
+
+  <div class="panel">
+    <div class="form">
+      <h2>Patient details</h2>
+
+      <div class="row"><label for="age">Age<small>Years</small></label>
+        <input type="number" id="age" value="35" min="18" max="100" step="1"></div>
+
+      <div class="row"><label for="glucose">Glucose
+          <small>2-hour reading after a glucose drink (OGTT), not fasting</small>
+          <span class="unit"><button type="button" id="u1" class="on">mmol/L</button><button type="button" id="u2">mg/dL</button></span></label>
+        <input type="number" id="glucose" value="6.7" step="0.1"></div>
+
+      <div class="row"><label for="bmi">BMI<small>Weight (kg) ÷ height (m) squared</small></label>
+        <input type="number" id="bmi" value="28" min="10" max="70" step="0.1"></div>
+
+      <div class="row"><label for="bp">Blood pressure<small>Diastolic, the lower number (mm Hg). Blank if unknown</small></label>
+        <input type="number" id="bp" value="72" min="30" max="140" step="1"></div>
+
+      <div class="row"><label for="preg">Pregnancies<small>Number of times pregnant</small></label>
+        <input type="number" id="preg" value="1" min="0" max="20" step="1"></div>
+
+      <div class="row"><label for="insulin">Insulin<small>2-hour serum (µU/mL). Blank if unknown</small></label>
+        <input type="number" id="insulin" placeholder="unknown" min="1" max="900" step="1"></div>
+
+      <div class="row"><label for="skin">Skin fold thickness<small>Triceps (mm). Blank if unknown</small></label>
+        <input type="number" id="skin" placeholder="unknown" min="5" max="100" step="1"></div>
+
+      <div class="row"><label for="dpf">Family history score<small>Diabetes pedigree function. Blank if unsure</small></label>
+        <input type="number" id="dpf" placeholder="unknown" min="0.05" max="2.5" step="0.01"></div>
+
+      <div class="actions">
+        <button id="go" type="button">Predict</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
+      <div class="error" id="err"></div>
+    </div>
+
+    <div class="result">
+      <div class="placeholder" id="ph">Fill in the details and press Predict.</div>
+      <div id="out" style="display:none">
+        <div class="k">Estimated probability of diabetes</div>
+        <div class="pct" id="pct">0%</div>
+        <div class="label" id="lab"></div>
+        <div class="bar"><i id="fill"></i></div>
+        <div class="factors-title" id="ft"></div>
+        <ul class="factors" id="factors"></ul>
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="disclaimer">⚠️ This is a learning project, not a medical device. It was trained on only 768 patients from one population and is wrong roughly 1 time in 4. Never use it to diagnose or rule out diabetes. If you are worried, get a blood test and see a doctor.</p>
+  <p class="foot">Built by Martins (MartCruz17) for the CodeAlpha Machine Learning internship.</p>
+</div>
+
+<script>
+// ===== MODEL PARAMETERS (from the Colab notebook) =====
+// Replace this whole object with the one printed by the Colab cell.
+const PARAMS = {
+  "features": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "medians": [
+    3.0,
+    117.0,
+    72.0,
+    29.0,
+    125.0,
+    32.4,
+    0.3825,
+    29.0
+  ],
+  "means": [
+    3.819218,
+    121.67101,
+    72.140065,
+    29.042345,
+    137.705212,
+    32.448208,
+    0.477428,
+    33.36645
+  ],
+  "scales": [
+    3.311448,
+    29.979351,
+    12.265119,
+    8.884611,
+    78.7006,
+    6.818562,
+    0.330031,
+    11.823798
+  ],
+  "coefs": [
+    0.372902,
+    1.183483,
+    -0.014612,
+    0.01398,
+    -0.044609,
+    0.709592,
+    0.287734,
+    0.186434
+  ],
+  "intercept": -0.257045
+};
+// =====================================================
+
+const LABELS = {
+  Pregnancies: "Number of pregnancies", Glucose: "Glucose level", BloodPressure: "Blood pressure",
+  SkinThickness: "Skin fold thickness", Insulin: "Insulin level", BMI: "BMI",
+  DiabetesPedigreeFunction: "Family history score", Age: "Age"
+};
+
+// The whole model: scale each input, multiply by its coefficient, add up, squash into 0-1
+function predict(values) {
+  let z = PARAMS.intercept;
+  const parts = [];
+  values.forEach((v, i) => {
+    const scaled = (v - PARAMS.means[i]) / PARAMS.scales[i];
+    const part = PARAMS.coefs[i] * scaled;
+    parts.push(part);
+    z += part;
+  });
+  return { prob: 1 / (1 + Math.exp(-z)), parts };
+}
+
+const $ = id => document.getElementById(id);
+let unit = "mmol";
+
+function setUnit(u) {
+  if (u === unit) return;
+  const g = $("glucose");
+  const v = parseFloat(g.value);
+  unit = u;
+  $("u1").classList.toggle("on", u === "mmol");
+  $("u2").classList.toggle("on", u === "mgdl");
+  if (!isNaN(v)) g.value = u === "mgdl" ? Math.round(v * 18.016) : (v / 18.016).toFixed(1);
+  g.step = u === "mgdl" ? 1 : 0.1;
+}
+$("u1").onclick = () => setUnit("mmol");
+$("u2").onclick = () => setUnit("mgdl");
+
+function val(id) {
+  const s = $(id).value.trim();
+  return s === "" ? null : parseFloat(s);
+}
+
+$("go").onclick = () => {
+  $("err").textContent = "";
+  const age = val("age"), glucoseIn = val("glucose"), bmi = val("bmi");
+  if (age === null || glucoseIn === null || bmi === null) {
+    $("err").textContent = "Age, glucose and BMI are required.";
+    return;
+  }
+  const glucose = unit === "mmol" ? glucoseIn * 18.016 : glucoseIn; // dataset uses mg/dL
+  if (glucose < 40 || glucose > 400) { $("err").textContent = "That glucose value looks out of range. Check the unit."; return; }
+  if (bmi < 10 || bmi > 70) { $("err").textContent = "That BMI looks out of range."; return; }
+
+  const raw = {
+    Pregnancies: val("preg"), Glucose: glucose, BloodPressure: val("bp"),
+    SkinThickness: val("skin"), Insulin: val("insulin"), BMI: bmi,
+    DiabetesPedigreeFunction: val("dpf"), Age: age
+  };
+
+  let filled = 0;
+  const known = [];
+  const x = PARAMS.features.map((name, i) => {
+    if (raw[name] === null || isNaN(raw[name])) { filled++; known.push(false); return PARAMS.medians[i]; }
+    known.push(true);
+    return raw[name];
+  });
+
+  const { prob, parts } = predict(x);
+  const pct = Math.round(prob * 100);
+
+  let cls, text;
+  if (prob >= 0.5) { cls = "high"; text = "Higher risk"; }
+  else if (prob >= 0.35) { cls = "mid"; text = "Medium risk"; }
+  else { cls = "low"; text = "Lower risk"; }
+
+  $("ph").style.display = "none";
+  $("out").style.display = "block";
+  $("pct").textContent = pct + "%";
+  $("lab").textContent = text;
+  $("lab").className = "label " + cls;
+  const fill = $("fill");
+  fill.style.width = pct + "%";
+  fill.style.background = getComputedStyle(document.documentElement).getPropertyValue("--" + cls);
+
+  // Which entered values pushed the estimate the most
+  const top = parts
+    .map((p, i) => ({ name: PARAMS.features[i], p, known: known[i] }))
+    .filter(f => f.known && Math.abs(f.p) > 0.1)
+    .sort((a, b) => Math.abs(b.p) - Math.abs(a.p))
+    .slice(0, 3);
+  $("ft").textContent = top.length ? "What moved the estimate" : "";
+  $("factors").innerHTML = top.map(f =>
+    f.p > 0
+      ? `<li><span class="up">▲ Raises risk</span>: ${LABELS[f.name]}</li>`
+      : `<li><span class="down">▼ Lowers risk</span>: ${LABELS[f.name]}</li>`
+  ).join("");
+
+  let note = prob >= 0.5
+    ? "The model flags this profile as higher risk. A blood test and a doctor's visit are the next step."
+    : "The model does not flag this profile as high risk. That does not rule out diabetes, so get tested if there are symptoms.";
+  if (filled > 0) note += " " + filled + " blank field" + (filled > 1 ? "s were" : " was") + " filled with typical values from the training data.";
+  $("note").textContent = note;
+};
+
+$("reset").onclick = () => {
+  $("age").value = 35; $("bmi").value = 28; $("bp").value = 72; $("preg").value = 1;
+  $("insulin").value = ""; $("skin").value = ""; $("dpf").value = "";
+  if (unit === "mgdl") setUnit("mmol");
+  $("glucose").value = 6.7;
+  $("out").style.display = "none"; $("ph").style.display = "block"; $("err").textContent = "";
+};
+</script>
+</body>
+</html>
